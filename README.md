@@ -37,44 +37,44 @@ In the configure cell below, first we need to load those jar files to the Spark 
 
 We also need to exclude a few spark jars because there are some conflicts between Livy (which is the REST API used on HDInsight to execute Spark code), and XGBoost.
 
-  %%configure -f
-  { "jars": ["wasb:///xgboost4j-spark-0.7.jar", "wasb:///xgboost4j-0.7.jar", "wasb:///xgboost4j-example-0.7.jar"],
-    "conf": {
-      "spark.jars.excludes": "org.scala-lang:scala-reflect:2.11.8,org.scala-lang:scala-compiler:2.11.8,org.scala-lang:scala-library:2.11.8"
-     }
-  }
+   %%configure -f
+   { "jars": ["wasb:///xgboost4j-spark-0.7.jar", "wasb:///xgboost4j-0.7.jar", "wasb:///xgboost4j-example-0.7.jar"],
+     "conf": {
+       "spark.jars.excludes": "org.scala-lang:scala-reflect:2.11.8,org.scala-lang:scala-compiler:2.11.8,org.scala-lang:scala-library:2.11.8"
+      }
+   }
   
   
 ### Import Packages
 We then import the XGBoost packages and start a Spark application
 
-  import ml.dmlc.xgboost4j.scala.Booster
-  import ml.dmlc.xgboost4j.scala.spark.XGBoost
-  import org.apache.spark.sql.SparkSession
-  import org.apache.spark.SparkConf
-  // create training and testing dataframes
-  val inputTrainPath = "wasb:///agaricus.txt.train"
-  val inputTestPath = "wasb:///agaricus.txt.test"
-  val outputModelPath = "wasb:///XGBoostModelOutput"
-  val numWorkers = 4
+   import ml.dmlc.xgboost4j.scala.Booster
+   import ml.dmlc.xgboost4j.scala.spark.XGBoost
+   import org.apache.spark.sql.SparkSession
+   import org.apache.spark.SparkConf
+   // create training and testing dataframes
+   val inputTrainPath = "wasb:///agaricus.txt.train"
+   val inputTestPath = "wasb:///agaricus.txt.test"
+   val outputModelPath = "wasb:///XGBoostModelOutput"
+   val numWorkers = 4
 
-  // number of iterations
-  val numRound = 100
+   // number of iterations
+   val numRound = 100
 
-  // build dataset
-  val trainDF = spark.sqlContext.read.format("libsvm").load(inputTrainPath)
-  val testDF = spark.sqlContext.read.format("libsvm").load(inputTestPath)
-  // start training
-  val paramMap = List(
-    "eta" -> 0.1f,
-    "max_depth" -> 6,
-    "objective" -> "binary:logistic").toMap
+   // build dataset
+   val trainDF = spark.sqlContext.read.format("libsvm").load(inputTrainPath)
+   val testDF = spark.sqlContext.read.format("libsvm").load(inputTestPath)
+   // start training
+   val paramMap = List(
+     "eta" -> 0.1f,
+     "max_depth" -> 6,
+     "objective" -> "binary:logistic").toMap
 
-  val xgboostModel = XGBoost.trainWithDataFrame(
-    trainDF, paramMap, numRound, nWorkers = numWorkers, useExternalMemory = true)
-   // xgboost-spark appends the column containing prediction results
-  xgboostModel.transform(testDF).show()
-  xgboostModel.explainParams()
-    //set sc value which is required by the saveModelAsHadoopFile API. It is the sparkContext type so we need to get it from the default spark (which is of sparkSession type)
-  implicit val sc = spark.sparkContext
-  xgboostModel.saveModelAsHadoopFile(outputModelPath)
+   val xgboostModel = XGBoost.trainWithDataFrame(
+     trainDF, paramMap, numRound, nWorkers = numWorkers, useExternalMemory = true)
+    // xgboost-spark appends the column containing prediction results
+   xgboostModel.transform(testDF).show()
+   xgboostModel.explainParams()
+     //set sc value which is required by the saveModelAsHadoopFile API. It is the sparkContext type so we need to get it from the default spark (which is of sparkSession type)
+   implicit val sc = spark.sparkContext
+   xgboostModel.saveModelAsHadoopFile(outputModelPath)
